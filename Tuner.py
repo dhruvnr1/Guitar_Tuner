@@ -3,63 +3,78 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Parameters
-duration = 1       # seconds
+duration = 3        # seconds
 fs = 44100          # Sampling rate
 low_freq_threshold = 62  # Hz threshold to zero out below
+harmonics = 5       # Number of harmonics to use in HPS
 
 # Set default samplerate and channels
 sd.default.samplerate = fs
 sd.default.channels = 1
 
+def hps(signal, fs, harmonics=5):
+    
+    #Compute the Harmonic Product Spectrum (HPS)
+
+    #Apply a hanning window to limit the signal width
+    windowed_signal = signal * np.hanning(len(signal))
+    #Split sound into seperate frequencies using fft
+    fft = np.abs(np.fft.rfft(windowed_signal))
+    frequencies = np.fft.rfftfreq(len(signal), 1/fs)
+    #Apply HPS alg to downsample conflicting frequencies
+    hps_spectrum = np.copy(fft)
+    for harmonic in range(2, harmonics + 1):
+        downsampled = fft[::harmonic][:len(hps_spectrum)]
+        hps_spectrum[:len(downsampled)] *= downsampled
+    
+    return frequencies, hps_spectrum
+
+def detect_pitch(signal, fs, harmonics=5):
+
+    #Detect the fundamental frequency using HPS
+    frequencies, hps_spectrum = hps(signal, fs, harmonics)
+    #Find the now isolated highest frequency
+    fundamental_freq = frequencies[np.argmax(hps_spectrum)]
+    return fundamental_freq
+
 # Record audio
 print("Recording audio")
 myrecording = sd.rec(int(duration * fs))
 sd.wait()  # Wait until recording is finished
+print("Recording finished.")
 
-# Compute the FFT
-n = len(myrecording)
-yf = np.fft.fft(myrecording[:, 0])  # Perform FFT on the first channel
-xf = np.fft.fftfreq(n, 1/fs)  # Find frequency axis
-
-# Only take the positive half of the frequencies
-xf = xf[:n//2]
-yf = np.abs(yf[:n//2])  # Magnitude of the FFT
-
-# Zero out frequencies below 62 Hz (overtones below 62 Hz)
-yf[xf < low_freq_threshold] = 0
-
-# Harmonic Product Spectrum (HPS) to emphasize the fundamental
-def harmonic_product_spectrum(yf, num_harmonics=3):
-    """Apply the Harmonic Product Spectrum (HPS) to the FFT."""
-    hps = yf.copy()
-    for h in range(2, num_harmonics + 1):
-        decimated = yf[::h]  # Downsample by a factor of h
-        hps[:len(decimated)] *= decimated
-    return hps
-
-# Apply HPS to the FFT
-hps_spectrum = harmonic_product_spectrum(yf)
-peak_index_hps = np.argmax(hps_spectrum)
-fundamental_freq_hps = xf[peak_index_hps]
-
-print(f"Fundamental frequency using HPS: {fundamental_freq_hps} Hz")
+# Detect pitch
+fundamental_freq = detect_pitch(myrecording[:, 0], fs, harmonics)
+print(f"Detected fundamental frequency: {fundamental_freq:.2f} Hz")
 
 # Generate a pure tone at the fundamental frequency
 t = np.linspace(0, duration, int(fs * duration), endpoint=False)
-pure_tone = 0.5 * np.sin(2 * np.pi * fundamental_freq_hps * t)
-
-# Plot the original FFT and HPS-enhanced FFT
-plt.figure(figsize=(12, 6))
-plt.plot(xf, np.abs(yf), label='Filtered FFT (No Frequencies Below 62 Hz)')
-plt.plot(xf, hps_spectrum, label='HPS-enhanced FFT', linestyle='--')
-plt.xlabel('Frequency [Hz]')
-plt.ylabel('Amplitude')
-plt.legend()
-plt.title('Frequency Spectrum with Fundamental Isolation (HPS)')
-plt.grid(True)
-plt.show()
+pure_tone = 0.5 * np.sin(2 * np.pi * fundamental_freq * t)
 
 # Play the pure tone at the detected fundamental frequency
 print("Playing pure tone at fundamental frequency")
 sd.play(pure_tone, fs)
 sd.wait()
+
+# # Plot the original FFT and HPS
+# plt.figure(figsize=(12, 8))
+
+# # Original FFT
+# fft = np.abs(np.fft.rfft(myrecording[:, 0]))
+# freq = np.fft.rfftfreq(len(myrecording[:, 0]), 1/fs)
+# plt.subplot(2, 1, 1)
+# plt.plot(freq, fft)
+# plt.title('Original FFT')
+# plt.xlabel('Frequency [Hz]')
+# plt.ylabel('Amplitude')
+
+# # HPS
+# frequencies, hps_spectrum = hps(myrecording[:, 0], fs, harmonics)
+# plt.subplot(2, 1, 2)
+# plt.plot(frequencies, hps_spectrum)
+# plt.title('Harmonic Product Spectrum')
+# plt.xlabel('Frequency [Hz]')
+# plt.ylabel('Amplitude')
+
+# plt.tight_layout()
+# plt.show()
