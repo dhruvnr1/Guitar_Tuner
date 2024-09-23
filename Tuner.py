@@ -1,48 +1,42 @@
 import sounddevice as sd
 import numpy as np
-import matplotlib.pyplot as plt
-import collections
-import bisect
+import tkinter as tk
+from tkinter import ttk
 
 # Parameters
-duration = 1       # seconds
-fs = 44100          # Sampling rate
+duration = 1      # seconds
+fs = 44100         # Sampling rate
+harmonics = 5      # Number of harmonics to use in HPS
 low_freq_threshold = 62  # Hz threshold to zero out below
-harmonics = 5       # Number of harmonics to use in HPS
-runs = 50
-# Set default samplerate and channels
-sd.default.samplerate = fs
-sd.default.channels = 1
-freq_dict = {82.0 : "E", 110.0 : "A", 147.0 : "D",
-              196.0 : "G", 247.0 : "B", 330.0: "E"}
+freq_dict = {82.0: "E", 110.0: "A", 147.0: "D", 196.0: "G", 247.0: "B", 330.0: "E"}
+
 prev_note = "E"
 prev_freq = 0
-def closest_freq(val, list):
-    lo, hi = 0, len(list) - 1
+
+def closest_freq(val, freq_list):
+    lo, hi = 0, len(freq_list) - 1
     best_ind = lo
     while lo <= hi: 
-      mid = lo + (hi - lo) // 2
-      if(list[mid] < val):
-          lo = mid + 1
-      elif list[mid] > val:
-          hi = mid - 1
-      else: 
-         best_ind = mid
-         break
-      if abs(list[mid] - val) < abs(list[best_ind] - val):
+        mid = lo + (hi - lo) // 2
+        if freq_list[mid] < val:
+            lo = mid + 1
+        elif freq_list[mid] > val:
+            hi = mid - 1
+        else: 
             best_ind = mid
-    return list[best_ind]
+            break
+        if abs(freq_list[mid] - val) < abs(freq_list[best_ind] - val):
+            best_ind = mid
+    return freq_list[best_ind]
 
 def freq_to_letter(freq):
+    global prev_note
     if freq < 450:
-        global prev_note
         prev_note = freq_dict[closest_freq(freq, list(freq_dict))]
+    return prev_note
 
 def hps(signal, fs, harmonics=5):
-    
-    #Compute the Harmonic Product Spectrum (HPS)
-
-    #Apply a hanning window to limit the signal width
+    # Compute the Harmonic Product Spectrum (HPS)
     windowed_signal = signal * np.hanning(len(signal))
     #Split sound into seperate frequencies using fft
     fft = np.abs(np.fft.rfft(windowed_signal))
@@ -63,51 +57,48 @@ def detect_pitch(signal, fs, harmonics=5):
     fundamental_freq = frequencies[np.argmax(hps_spectrum)]
     return fundamental_freq
 
-while runs > 0:
-   # Record audio
-   #print("Recording audio")
-   myrecording = sd.rec(int(duration * fs))
-   sd.wait()  # Wait until recording is finished
-   #print("Recording finished.")
+def update_pitch():
+    global prev_freq
+    myrecording = sd.rec(int(duration * fs), samplerate=fs, channels=1)
+    sd.wait()
+    
+    # Detect pitch
+    fundamental_freq = detect_pitch(myrecording[:, 0], fs, harmonics)
+    if fundamental_freq < 450:
+        prev_freq = fundamental_freq
 
-   # Detect pitch
-   fundamental_freq = detect_pitch(myrecording[:, 0], fs, harmonics)
-   if fundamental_freq < 450:
-       prev_freq = fundamental_freq
-   #print(f"Detected fundamental frequency: {fundamental_freq:.2f} Hz")
-   print(prev_freq, "(", closest_freq(prev_freq, list(freq_dict)), 
-         ")")
-   freq_to_letter(prev_freq)
-   #print("Closest to:", prev_note)
-   # # Generate a pure tone at the fundamental frequency
-   # t = np.linspace(0, duration, int(fs * duration), endpoint=False)
-   # pure_tone = 0.5 * np.sin(2 * np.pi * fundamental_freq * t)
+    # Get the closest frequency and note
+    expected_freq = closest_freq(prev_freq, list(freq_dict))
+    note = freq_to_letter(prev_freq)
 
-   # # Play the pure tone at the detected fundamental frequency
-   # print("Playing pure tone at fundamental frequency")
-   # sd.play(pure_tone, fs)
-   # sd.wait()
+    # Update GUI labels with actual frequency and expected frequency
+    freq_label.config(text=f"Frequency: {prev_freq:.2f} Hz ({expected_freq:.2f} Hz)")
+    note_label.config(text=f"Note: {note}")
+    
+    root.after(1000, update_pitch)
 
-   # # Plot the original FFT and HPS
-   # plt.figure(figsize=(12, 8))
+# Set up GUI
+root = tk.Tk()
+root.title("Tuner")
 
-   # # Original FFT
-   # fft = np.abs(np.fft.rfft(myrecording[:, 0]))
-   # freq = np.fft.rfftfreq(len(myrecording[:, 0]), 1/fs)
-   # plt.subplot(2, 1, 1)
-   # plt.plot(freq, fft)
-   # plt.title('Original FFT')
-   # plt.xlabel('Frequency [Hz]')
-   # plt.ylabel('Amplitude')
+# Make the window larger and center it
+root.geometry("400x300")
+root.configure(bg="#f0f0f0")
 
-   # # HPS
-   # frequencies, hps_spectrum = hps(myrecording[:, 0], fs, harmonics)
-   # plt.subplot(2, 1, 2)
-   # plt.plot(frequencies, hps_spectrum)
-   # plt.title('Harmonic Product Spectrum')
-   # plt.xlabel('Frequency [Hz]')
-   # plt.ylabel('Amplitude')
+# Set custom styles for the labels
+style = ttk.Style()
+style.configure("TLabel", font=("Helvetica", 18), background="#f0f0f0")
 
-   # plt.tight_layout()
-   # plt.show()
-   runs = runs - 1
+# Frequency label
+freq_label = ttk.Label(root, text="Frequency: ", style="TLabel")
+freq_label.pack(pady=20)
+
+# Note label
+note_label = ttk.Label(root, text="Note: ", style="TLabel")
+note_label.pack(pady=20)
+
+# Start the pitch detection
+root.after(1000, update_pitch)
+
+# Run the GUI event loop
+root.mainloop()
