@@ -13,6 +13,13 @@ This is a Python-based real-time pitch detection tuner that uses the **Harmonic 
 
 ---
 
+## TO-DO
+
+ - Improve visual experience using Tkinter library
+ - Reduce pipeline lag using optimizations
+
+---
+
 ## 🛠️ Requirements
 
 Install the required Python packages with:
