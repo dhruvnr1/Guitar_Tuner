@@ -7,6 +7,7 @@ import math
 # Variables to track note switching
 closest_note = None
 closest_note_freq = None
+smoothed_cents = 0  # new: smoothed cents value
 
 
 class BarMeter(tk.Canvas):
@@ -62,7 +63,7 @@ class BarMeter(tk.Canvas):
 
 
 def update_pitch():
-    global closest_note, closest_note_freq
+    global closest_note, closest_note_freq, smoothed_cents
 
     # Pull all available chunks from queue and append to rolling buffer
     while not backend.q.empty():
@@ -105,11 +106,15 @@ def update_pitch():
         else:
             cents = 0
 
-        # Update bar meter
-        meter.update_bar(cents)
+        # --- Smooth the cents deviation ---
+        alpha = 0.2  # smoothing factor
+        smoothed_cents = (1 - alpha) * smoothed_cents + alpha * cents
 
-        # Show cents deviation text
-        cents_label.config(text=f"Deviation: {cents:+.1f} cents")
+        # Update bar meter
+        meter.update_bar(smoothed_cents)
+
+        # Show cents deviation text (rounded, no decimals)
+        cents_label.config(text=f"Deviation: {int(smoothed_cents):+d} cents")
 
     root.after(50, update_pitch)  # Update every 50ms
 
@@ -129,7 +134,7 @@ freq_label.pack(pady=10)
 note_label = ttk.Label(root, text="Note: ", style="TLabel")
 note_label.pack(pady=10)
 
-cents_label = ttk.Label(root, text="Deviation: 0.0 cents", style="TLabel")
+cents_label = ttk.Label(root, text="Deviation: 0 cents", style="TLabel")
 cents_label.pack(pady=10)
 
 # Symmetric bar meter with ticks
