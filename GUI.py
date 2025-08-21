@@ -35,11 +35,6 @@ class BarMeter(tk.Canvas):
             else:  # small ticks
                 self.create_line(x, 15, x, self.height - 15, fill="black")
 
-            # Label only -50, 0, +50
-            if cents in (-50, 0, 50):
-                self.create_text(x, self.height - 5, text=str(cents),
-                                 anchor="n", font=("Helvetica", 10))
-
         self.bar = None
         self.update_bar(0)
 
@@ -59,7 +54,7 @@ class BarMeter(tk.Canvas):
         # Draw bar
         color = "green" if abs(cents_deviation) < 5 else "red"
         self.bar = self.create_rectangle(self.mid, 5, pos,
-                                         self.height - 5, fill=color)
+                                         self.height - 20, fill=color)
 
 
 def update_pitch():
