@@ -15,7 +15,10 @@ This is a Python-based real-time pitch detection tuner that uses the **Harmonic 
 
 ## TO-DO
 
+## ChangeLog
  - Improve visual experience using Tkinter library
+   - Added bar meter to represent proximity to note
+   - Made meter fluid and change color if closest to note
  - Reduce pipeline lag using optimizations
    - Switched to using streaming for audio
    - Enabled concurency in pipeline, dropped latency to 50ms rather than 1 second
