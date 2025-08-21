@@ -59,7 +59,7 @@ class BarMeter(tk.Canvas):
         # Draw bar
         color = "green" if abs(cents_deviation) < 5 else "red"
         self.bar = self.create_rectangle(self.mid, 5, pos,
-                                         self.height - 20, fill=color)
+                                         self.height - 5, fill=color)
 
 
 def update_pitch():
