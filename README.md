@@ -14,7 +14,9 @@ This is a Python-based real-time pitch detection tuner that uses the **Harmonic 
 ---
 
 ## TO-DO
-
+ - Fix scaling of bar meter
+ - Revamp UI with ideal TKinter library but retain core visual features
+ - Package into executable file
 ## ChangeLog
  - Improve visual experience using Tkinter library
    - Added bar meter to represent proximity to note
