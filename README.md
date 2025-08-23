@@ -15,6 +15,9 @@ This is a Python-based real-time pitch detection tuner that uses the **Harmonic 
 
 ## TO-DO
  - Revamp UI with ideal TKinter library but retain core visual features
+   - Color scheme for bar to slowly go from red to green
+   - Modern text and dark background for tuner
+   - Guitar motif?
  - Package into executable file
 ## ChangeLog
  - Improve visual experience using Tkinter library
