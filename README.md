@@ -18,6 +18,7 @@ This is a Python-based real-time pitch detection tuner that uses the **Harmonic 
    - Color scheme for bar to slowly go from red to green
    - Modern text and dark background for tuner
    - Guitar motif?
+   - Add some Java packaging to aplication
  - Package into executable file
 ## ChangeLog
  - Improve visual experience using Tkinter library
@@ -26,6 +27,7 @@ This is a Python-based real-time pitch detection tuner that uses the **Harmonic 
  - Reduce pipeline lag using optimizations
    - Switched to using streaming for audio
    - Enabled concurency in pipeline, dropped latency to 50ms rather than 1 second
+
 
 ---
 
